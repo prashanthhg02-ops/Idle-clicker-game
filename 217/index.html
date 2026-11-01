@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090c1b">
+  <title>Starfall — Idle Clicker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090c1b;
+      --panel: rgba(18, 23, 45, .88);
+      --panel-light: rgba(25, 32, 60, .82);
+      --line: rgba(167, 180, 255, .13);
+      --muted: #8d96b7;
+      --text: #f3f5ff;
+      --cyan: #7ce9ff;
+      --violet: #ad91ff;
+      --gold: #ffd780;
+      --green: #81f0c0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(ellipse at 16% 12%, rgba(86, 93, 196, .2), transparent 35%),
+        radial-gradient(ellipse at 82% 78%, rgba(46, 155, 194, .12), transparent 36%),
+        var(--bg);
+    }
+
+    button { font: inherit; }
+    .app { width: min(1120px, 100% - 36px); margin: 0 auto; padding: 28px 0 42px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 30px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid; width: 42px; height: 42px; place-items: center;
+      border: 1px solid rgba(124, 233, 255, .36); border-radius: 14px;
+      color: var(--cyan); background: rgba(124, 233, 255, .1); font-size: 22px;
+      box-shadow: 0 0 24px rgba(124, 233, 255, .12);
+    }
+    .brand-name { font-size: 15px; font-weight: 800; letter-spacing: .18em; }
+    .brand-subtitle { margin-top: 3px; color: var(--muted); font-size: 11px; letter-spacing: .08em; }
+    .save-status { color: var(--muted); font-size: 12px; }
+    .save-status::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+
+    .dashboard { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr); gap: 20px; align-items: stretch; }
+    .panel { border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: 0 18px 50px rgba(0, 0, 0, .18); }
+    .mine-panel { position: relative; display: flex; min-height: 540px; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 36px 26px; }
+    .mine-panel::before, .mine-panel::after { position: absolute; content: ""; border: 1px solid rgba(124, 233, 255, .07); border-radius: 50%; pointer-events: none; }
+    .mine-panel::before { width: 360px; height: 360px; }
+    .mine-panel::after { width: 470px; height: 470px; }
+    .eyebrow { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .19em; text-transform: uppercase; }
+    .balance { z-index: 1; margin: 8px 0 2px; font-size: clamp(42px, 7vw, 66px); font-weight: 800; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+    .resource-name { z-index: 1; color: var(--cyan); font-size: 14px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .rate { z-index: 1; margin-top: 12px; color: var(--muted); font-size: 13px; }
+    .rate strong { color: var(--green); font-weight: 700; }
+
+    .planet-wrap { z-index: 1; position: relative; display: grid; width: 250px; height: 250px; place-items: center; margin: 24px 0 18px; }
+    .planet-glow { position: absolute; width: 210px; height: 210px; border-radius: 50%; background: rgba(107, 104, 255, .2); filter: blur(35px); }
+    .planet {
+      position: relative; display: grid; width: 176px; height: 176px; place-items: center;
+      overflow: hidden; border: 1px solid rgba(183, 199, 255, .5); border-radius: 50%;
+      background:
+        radial-gradient(circle at 34% 29%, rgba(213, 227, 255, .95) 0 1px, transparent 2px),
+        radial-gradient(circle at 70% 41%, rgba(255, 255, 255, .8) 0 1px, transparent 2px),
+        radial-gradient(circle at 43% 68%, rgba(255, 255, 255, .7) 0 1px, transparent 2px),
+        radial-gradient(ellipse at 36% 28%, #9cecff 0, #637be9 24%, #413a91 55%, #1a204c 78%);
+      box-shadow: inset -22px -18px 40px rgba(5, 8, 29, .55), inset 10px 8px 25px rgba(229, 248, 255, .24), 0 0 35px rgba(123, 123, 255, .3);
+      cursor: pointer; transition: transform .12s ease, filter .12s ease; user-select: none;
+    }
+    .planet:hover { filter: brightness(1.15); transform: scale(1.035); }
+    .planet:active, .planet.pressed { transform: scale(.94); }
+    .planet-icon { color: rgba(240, 248, 255, .94); font-size: 49px; filter: drop-shadow(0 2px 12px rgba(7, 11, 34, .6)); }
+    .click-hint { z-index: 1; color: var(--muted); font-size: 12px; }
+    .click-hint kbd { padding: 3px 7px; border: 1px solid var(--line); border-radius: 6px; background: rgba(255, 255, 255, .04); color: #d7dcf3; font: inherit; }
+
+    .float-text { position: absolute; z-index: 3; color: var(--gold); font-size: 18px; font-weight: 800; pointer-events: none; animation: float-up .8s ease-out forwards; text-shadow: 0 2px 10px rgba(0, 0, 0, .6); }
+    @keyframes float-up { from { opacity: 1; transform: translate(-50%, 0) scale(.8); } to { opacity: 0; transform: translate(-50%, -68px) scale(1.12); } }
+    .side-column { display: flex; flex-direction: column; gap: 20px; }
+    .stats-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 18px; }
+    .stat-card { min-height: 88px; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255, 255, 255, .025); }
+    .stat-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .stat-value { margin-top: 8px; font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; }
+    .shop-panel { flex: 1; padding: 20px; }
+    .shop-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .shop-heading h2 { margin: 0; font-size: 15px; letter-spacing: .03em; }
+    .shop-heading span { color: var(--muted); font-size: 11px; }
+    .upgrade-list { display: flex; flex-direction: column; gap: 10px; }
+    .upgrade {
+      display: flex; width: 100%; align-items: center; gap: 12px; padding: 13px;
+      border: 1px solid var(--line); border-radius: 14px; color: var(--text);
+      background: var(--panel-light); text-align: left; cursor: pointer; transition: border-color .15s, background .15s, transform .15s;
+    }
+    .upgrade:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(124, 233, 255, .38); background: rgba(35, 44, 77, .92); }
+    .upgrade:disabled { cursor: not-allowed; opacity: .53; }
+    .upgrade-icon { display: grid; width: 39px; height: 39px; flex: 0 0 39px; place-items: center; border: 1px solid rgba(173, 145, 255, .2); border-radius: 12px; background: rgba(173, 145, 255, .1); font-size: 19px; }
+    .upgrade-copy { min-width: 0; flex: 1; }
+    .upgrade-name { font-size: 12px; font-weight: 750; }
+    .upgrade-desc { margin-top: 4px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .upgrade-cost { color: var(--gold); font-size: 11px; font-weight: 750; white-space: nowrap; }
+    .empty-note { padding: 20px 10px; color: var(--muted); font-size: 12px; text-align: center; }
+    .footer { margin-top: 20px; color: #737d9e; font-size: 11px; line-height: 1.6; text-align: center; }
+    .reset-button { margin-top: 10px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: transparent; font-size: 11px; cursor: pointer; }
+    .reset-button:hover { border-color: rgba(255, 145, 145, .5); color: #ffaaa9; }
+
+    @media (max-width: 760px) {
+      .app { width: min(100% - 24px, 520px); padding-top: 18px; }
+      .dashboard { grid-template-columns: 1fr; }
+      .mine-panel { min-height: 485px; }
+      .side-column { display: contents; }
+      .stats-panel { order: 2; }
+      .shop-panel { order: 3; }
+      .save-status { font-size: 0; }
+      .save-status::before { margin-right: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">✦</div>
+        <div>
+          <div class="brand-name">STARFALL</div>
+          <div class="brand-subtitle">A little cosmic empire</div>
+        </div>
+      </div>
+      <div class="save-status" id="save-status" aria-live="polite">Progress saved</div>
+    </header>
+
+    <section class="dashboard" aria-label="Game dashboard">
+      <section class="panel mine-panel" aria-label="Mine stardust">
+        <div class="eyebrow">Your cosmic fortune</div>
+        <div class="balance" id="balance">0</div>
+        <div class="resource-name">✦ Stardust</div>
+        <div class="rate">Generating <strong id="rate">0</strong> per second</div>
+        <div class="planet-wrap" id="planet-wrap">
+          <div class="planet-glow" aria-hidden="true"></div>
+          <button class="planet" id="mine-button" type="button" aria-label="Mine stardust">
+            <span class="planet-icon" aria-hidden="true">✦</span>
+          </button>
+        </div>
+        <div class="click-hint">Click the planet or press <kbd>Space</kbd> to mine</div>
+      </section>
+
+      <div class="side-column">
+        <section class="panel stats-panel" aria-label="Statistics">
+          <div class="stat-card"><div class="stat-label">Per click</div><div class="stat-value" id="click-power">1</div></div>
+          <div class="stat-card"><div class="stat-label">Lifetime mined</div><div class="stat-value" id="lifetime">0</div></div>
+          <div class="stat-card"><div class="stat-label">Total clicks</div><div class="stat-value" id="click-count">0</div></div>
+          <div class="stat-card"><div class="stat-label">Upgrades owned</div><div class="stat-value" id="upgrade-count">0</div></div>
+        </section>
+
+        <section class="panel shop-panel" aria-label="Upgrade shop">
+          <div class="shop-heading">
+            <h2>Upgrade station</h2>
+            <span>Invest in your future</span>
+          </div>
+          <div class="upgrade-list" id="upgrade-list"></div>
+        </section>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Your progress saves automatically on this device. Come back anytime to find your empire still growing.
+      <br><button class="reset-button" id="reset-button" type="button">Reset game</button>
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const SAVE_KEY = "starfall-idle-clicker-v1";
+      const OFFLINE_CAP_SECONDS = 8 * 60 * 60;
+      const upgrades = [
+        { id: "pickaxe", name: "Cosmic pickaxe", icon: "⛏", description: "+1 stardust per click", baseCost: 15, scale: 1.16, kind: "click", amount: 1 },
+        { id: "drone", name: "Mining drone", icon: "🛰", description: "+1 stardust per second", baseCost: 30, scale: 1.17, kind: "passive", amount: 1 },
+        { id: "bot", name: "Botany lab", icon: "🌱", description: "+8 stardust per second", baseCost: 180, scale: 1.18, kind: "passive", amount: 8 },
+        { id: "portal", name: "Stardust portal", icon: "🌀", description: "+60 stardust per second", baseCost: 1200, scale: 1.20, kind: "passive", amount: 60 }
+      ];
+
+      const elements = {
+        balance: document.getElementById("balance"),
+        rate: document.getElementById("rate"),
+        clickPower: document.getElementById("click-power"),
+        lifetime: document.getElementById("lifetime"),
+        clickCount: document.getElementById("click-count"),
+        upgradeCount: document.getElementById("upgrade-count"),
+        upgradeList: document.getElementById("upgrade-list"),
+        mineButton: document.getElementById("mine-button"),
+        planetWrap: document.getElementById("planet-wrap"),
+        saveStatus: document.getElementById("save-status"),
+        resetButton: document.getElementById("reset-button")
+      };
+
+      const freshState = () => ({
+        dust: 0,
+        lifetime: 0,
+        clicks: 0,
+        clickPower: 1,
+        passiveRate: 0,
+        owned: Object.fromEntries(upgrades.map((upgrade) => [upgrade.id, 0])),
+        lastSaved: Date.now()
+      });
+
+      let state = freshState();
+
+      function format(value) {
+        if (value < 1000) return Math.floor(value).toLocaleString();
+        const units = ["K", "M", "B", "T", "Qa", "Qi"];
+        let unitIndex = -1;
+        let scaled = value;
+        while (scaled >= 1000 && unitIndex < units.length - 1) {
+          scaled /= 1000;
+          unitIndex += 1;
+        }
+        return `${scaled.toFixed(scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2)}${units[unitIndex]}`;
+      }
+
+      function upgradeCost(upgrade) {
+        return Math.ceil(upgrade.baseCost * Math.pow(upgrade.scale, state.owned[upgrade.id]));
+      }
+
+      function save() {
+        state.lastSaved = Date.now();
+        try {
+          localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+          elements.saveStatus.textContent = "Progress saved";
+        } catch (error) {
+          elements.saveStatus.textContent = "Could not save progress";
+          console.error("Unable to save Starfall progress:", error);
+        }
+      }
+
+      function load() {
+        try {
+          const saved = localStorage.getItem(SAVE_KEY);
+          if (!saved) return;
+          const parsed = JSON.parse(saved);
+          if (!parsed || typeof parsed !== "object" || !Number.isFinite(parsed.dust) || parsed.dust < 0) {
+            throw new Error("Save data has an invalid format.");
+          }
+          const initial = freshState();
+          state = {
+            ...initial,
+            dust: parsed.dust,
+            lifetime: Number.isFinite(parsed.lifetime) && parsed.lifetime >= 0 ? parsed.lifetime : 0,
+            clicks: Number.isFinite(parsed.clicks) && parsed.clicks >= 0 ? parsed.clicks : 0,
+            clickPower: Number.isFinite(parsed.clickPower) && parsed.clickPower >= 1 ? parsed.clickPower : 1,
+            passiveRate: Number.isFinite(parsed.passiveRate) && parsed.passiveRate >= 0 ? parsed.passiveRate : 0,
+            owned: { ...initial.owned }
+          };
+          for (const upgrade of upgrades) {
+            const count = parsed.owned && parsed.owned[upgrade.id];
+            state.owned[upgrade.id] = Number.isSafeInteger(count) && count >= 0 ? count : 0;
+          }
+          const elapsed = Number.isFinite(parsed.lastSaved) ? Math.max(0, (Date.now() - parsed.lastSaved) / 1000) : 0;
+          const offlineSeconds = Math.min(elapsed, OFFLINE_CAP_SECONDS);
+          const offlineEarnings = offlineSeconds * state.passiveRate;
+          if (offlineEarnings > 0) {
+            state.dust += offlineEarnings;
+            state.lifetime += offlineEarnings;
+            window.setTimeout(() => {
+              window.alert(`Welcome back! Your cosmic crew mined ${format(offlineEarnings)} stardust while you were away.`);
+            }, 250);
+          }
+        } catch (error) {
+          console.error("Unable to load Starfall progress:", error);
+          elements.saveStatus.textContent = "Save data could not be loaded";
+        }
+      }
+
+      function render() {
+        elements.balance.textContent = format(state.dust);
+        elements.rate.textContent = format(state.passiveRate);
+        elements.clickPower.textContent = format(state.clickPower);
+        elements.lifetime.textContent = format(state.lifetime);
+        elements.clickCount.textContent = format(state.clicks);
+        elements.upgradeCount.textContent = format(Object.values(state.owned).reduce((sum, count) => sum + count, 0));
+        elements.upgradeList.replaceChildren();
+
+        for (const upgrade of upgrades) {
+          const cost = upgradeCost(upgrade);
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "upgrade";
+          button.disabled = state.dust < cost;
+          button.setAttribute("aria-label", `Buy ${upgrade.name} for ${format(cost)} stardust`);
+          button.innerHTML = `
+            <span class="upgrade-icon" aria-hidden="true">${upgrade.icon}</span>
+            <span class="upgrade-copy">
+              <span class="upgrade-name">${upgrade.name} <span style="color:var(--muted);font-weight:500">×${state.owned[upgrade.id]}</span></span>
+              <span class="upgrade-desc">${upgrade.description}</span>
+            </span>
+            <span class="upgrade-cost">✦ ${format(cost)}</span>`;
+          button.addEventListener("click", () => buyUpgrade(upgrade));
+          elements.upgradeList.append(button);
+        }
+      }
+
+      function addDust(amount) {
+        if (!Number.isFinite(amount) || amount <= 0) return;
+        state.dust += amount;
+        state.lifetime += amount;
+      }
+
+      function mine(event) {
+        addDust(state.clickPower);
+        state.clicks += 1;
+        elements.mineButton.classList.add("pressed");
+        window.setTimeout(() => elements.mineButton.classList.remove("pressed"), 100);
+        const bounds = elements.planetWrap.getBoundingClientRect();
+        const float = document.createElement("span");
+        float.className = "float-text";
+        float.textContent = `+${format(state.clickPower)} ✦`;
+        float.style.left = `${(event && Number.isFinite(event.clientX) ? event.clientX : bounds.left + bounds.width / 2) - bounds.left}px`;
+        float.style.top = `${(event && Number.isFinite(event.clientY) ? event.clientY : bounds.top + bounds.height / 2) - bounds.top}px`;
+        elements.planetWrap.append(float);
+        window.setTimeout(() => float.remove(), 850);
+        render();
+      }
+
+      function buyUpgrade(upgrade) {
+        const cost = upgradeCost(upgrade);
+        if (state.dust < cost) return;
+        state.dust -= cost;
+        state.owned[upgrade.id] += 1;
+        if (upgrade.kind === "click") state.clickPower += upgrade.amount;
+        else state.passiveRate += upgrade.amount;
+        render();
+        save();
+      }
+
+      elements.mineButton.addEventListener("click", mine);
+      document.addEventListener("keydown", (event) => {
+        if (event.code === "Space" && !event.repeat && !/^(INPUT|TEXTAREA|BUTTON)$/.test(document.activeElement.tagName)) {
+          event.preventDefault();
+          mine();
+        }
+      });
+      elements.resetButton.addEventListener("click", () => {
+        if (!window.confirm("Reset all Stardust, upgrades, and saved progress? This cannot be undone.")) return;
+        state = freshState();
+        save();
+        render();
+      });
+
+      load();
+      render();
+      window.setInterval(() => {
+        addDust(state.passiveRate);
+        render();
+      }, 1000);
+      window.setInterval(save, 5000);
+      window.addEventListener("beforeunload", save);
+    })();
+  </script>
+</body>
+</html>
